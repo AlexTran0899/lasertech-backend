@@ -35,4 +35,6 @@ public class PlayerSessionController : ControllerBase
         Udp.AddEquipmentID(p.EquipmentID);
         return Ok(playerSession);
     }
+    
+    
 }

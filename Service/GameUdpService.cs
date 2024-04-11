@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using lasertech_backend.Enum;
 using lasertech_backend.Interface;
 
 public class GameUdpService : IUdpService
@@ -10,7 +11,7 @@ public class GameUdpService : IUdpService
     private readonly int listenPort;
     private readonly int transmitPort;
     private List<string> equipmentIDs;
-
+    
     public GameUdpService(int listenPort, int transmitPort)
     {
         this.listenPort = listenPort;
@@ -21,16 +22,37 @@ public class GameUdpService : IUdpService
 
     public async Task StartListening(CancellationToken token)
     {
-        Console.WriteLine("Listening...");
         while (!token.IsCancellationRequested)
         {
             var receivedResult = await udpClient.ReceiveAsync();
-            string receivedMessage = Encoding.ASCII.GetString(receivedResult.Buffer);
+            string receivedMessage = Encoding.ASCII.GetString(receivedResult.Buffer); // need to optimize this later
             Console.WriteLine($"Received: {receivedMessage}");
+            
+            byte[] bytes = Encoding.ASCII.GetBytes(receivedResult.ToString());
+            await udpClient.SendAsync(bytes, bytes.Length, "127.0.0.1", transmitPort);  
+            
         }
     }
 
-    public async Task StartBroadcast(CancellationToken token)
+    public async Task broadcastGameStatus(GameStatus gameStatus)
+    {
+        int statusCode = gameStatus == GameStatus.Start ? 202 : 221;
+        byte[] bytes = Encoding.ASCII.GetBytes(statusCode.ToString());
+        if (gameStatus == GameStatus.Start)
+        {
+            await udpClient.SendAsync(bytes, bytes.Length, "127.0.0.1", transmitPort);   
+        }
+        else
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                await Task.Delay(500);
+                await udpClient.SendAsync(bytes, bytes.Length, "127.0.0.1", transmitPort);   
+            }
+        }
+    }
+
+    public async Task StartBroadcastEquipment(CancellationToken token)
     {
         Console.WriteLine("Broadcast started...");
         while (!token.IsCancellationRequested)
